@@ -1,0 +1,27 @@
+{
+  "name": "chat-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc",
+    "build-esbuild": "esbuild src/main.ts --target=es2020 --bundle --platform=node --outfile=dist/main.js",
+    "start": "node dist/main.js"
+  },
+  "type": "commonjs",
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^4.8.1",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "ws": "^8.12.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.15",
+    "@types/node": "^18.11.18",
+    "@types/ws": "^8.5.4",
+    "esbuild": "^0.16.16"
+  }
+}
