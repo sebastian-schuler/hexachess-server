@@ -1,4 +1,5 @@
 import { generateMap } from "./gameLogic/Board";
+import { isKingDead } from "./gameLogic/GameChecks";
 import { getPossibleMovements } from "./gameLogic/GameMovement/MovementHandler";
 import { Lobby, Session } from "./types/ServerTypes";
 import { GameStateUpdate, ServerToClient } from "./types/SharedTypes";
@@ -181,18 +182,33 @@ export const movePiece = (session: Session, idFrom: string, idTo: string) => {
 
     // Check if hexTo is walkable
     const possibleMoves = getPossibleMovements(hexFrom, lobby.gameState.map);
-    console.log(possibleMoves);
     if (!possibleMoves.some(coord =>
         coord.q === hexTo.coords.q &&
         coord.r === hexTo.coords.r &&
         coord.s === hexTo.coords.s
     )) return;
 
+    // Check if the king is dead and end the game if so
+    if (isKingDead(hexTo)) {
+
+        const state: GameStateUpdate = {
+            map: JSON.stringify(Array.from(lobby.gameState.map.entries())),
+            currentTurn: lobby.gameState.currentTurn,
+            turnCount: lobby.gameState.turnCount
+        }
+
+        const winner = playerColor === "black" ? "black" : "white";
+
+        sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "GameEnded", state, winner } });
+    }
+
     // Move piece
     const pieceFrom = {
         ...hexFrom.piece,
     };
     pieceFrom.hasWalked = true;
+
+    // Move piece / capture piece
     hexTo.piece = pieceFrom;
     hexFrom.piece = null;
 

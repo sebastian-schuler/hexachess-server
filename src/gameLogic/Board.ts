@@ -28,7 +28,7 @@ export const generateMap = (gridSize: number) => {
         const hexa = map.get(coordinatesToId({ q: entry.q, r: entry.r, s: entry.s }));
         if (hexa) {
             hexa.piece = {
-                id: "",
+                id: entry.id,
                 type: entry.type,
                 player: entry.player,
                 hasWalked: false,
