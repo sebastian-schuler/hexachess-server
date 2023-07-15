@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import express from 'express';
+// import express from 'express';
 import { WebSocketServer } from 'ws';
 import { leaveLobby } from './AppServer';
 import { handleRequest } from './RequestHandler';
@@ -7,17 +7,8 @@ import { Session } from './types/ServerTypes';
 import { mkSession } from './util/Session';
 import { ClientToServer, ServerToClient } from './types/SharedTypes';
 
-const app = express();
+// const app = express();
 const PORT = process.env.PORT!;
-
-// app.use('/', (req, res, next) => {
-//     // Dateien im ordner "www" auf der URL "/" anbieten
-//     express.static(path.join(__dirname, "www"))(req, res, next)
-// });
-
-// app.listen(PORT, () => {
-//     console.log('HTTP Server running on http://localhost:' + PORT)
-// })
 
 const wss = new WebSocketServer({
     port: parseInt(PORT),

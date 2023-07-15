@@ -1,5 +1,5 @@
 import { generateMap } from "./gameLogic/Board";
-import { isKingDead } from "./gameLogic/GameChecks";
+import { isKingDead, isPawnPromoted } from "./gameLogic/GameChecks";
 import { getPossibleMovements } from "./gameLogic/GameMovement/MovementHandler";
 import { Lobby, Session } from "./types/ServerTypes";
 import { GameStateUpdate, ServerToClient } from "./types/SharedTypes";
@@ -122,6 +122,11 @@ export const joinLobby = (session: Session, id: string) => {
     console.log(otherPlayer);
 }
 
+/**
+ * Starts the game if the lobby is full
+ * @param session 
+ * @returns 
+ */
 export const startGame = (session: Session) => {
 
     // Check if session is in a lobby
@@ -138,7 +143,7 @@ export const startGame = (session: Session) => {
     lobby.status = "game";
     lobby.gameState = {
         map: generateMap(6),
-        currentTurn: "black",
+        currentTurn: "white",
         turnCount: 0
     }
 
@@ -152,6 +157,13 @@ export const startGame = (session: Session) => {
     sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "GameStarted", state } });
 }
 
+/**
+ * Moves a piece if it's the players turn
+ * @param session 
+ * @param idFrom 
+ * @param idTo 
+ * @returns 
+ */
 export const movePiece = (session: Session, idFrom: string, idTo: string) => {
 
     // Check if session is in a lobby
@@ -188,9 +200,9 @@ export const movePiece = (session: Session, idFrom: string, idTo: string) => {
         coord.s === hexTo.coords.s
     )) return;
 
-    // Check if the king is dead and end the game if so
-    if (isKingDead(hexTo)) {
 
+    if (isKingDead(hexTo)) {
+        // Check if the king is dead and end the game if so
         const state: GameStateUpdate = {
             map: JSON.stringify(Array.from(lobby.gameState.map.entries())),
             currentTurn: lobby.gameState.currentTurn,
@@ -200,6 +212,9 @@ export const movePiece = (session: Session, idFrom: string, idTo: string) => {
         const winner = playerColor === "black" ? "black" : "white";
 
         sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "GameEnded", state, winner } });
+    } else if (isPawnPromoted(hexFrom, hexTo)) {
+        // Check if a pawn is promoted, if so promote it
+        hexFrom.piece.type = "queen";
     }
 
     // Move piece
