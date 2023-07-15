@@ -9,7 +9,7 @@
     "build-esbuild": "esbuild src/main.ts --target=es2020 --bundle --platform=node --outfile=dist/main.js",
     "start": "node dist/main.js"
   },
-  "type": "module",
+  "type": "commonjs",
   "author": "",
   "license": "ISC",
   "dependencies": {
