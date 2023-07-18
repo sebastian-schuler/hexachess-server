@@ -1,4 +1,5 @@
 import { PieceType, PlayerColor } from "../types/SharedTypes";
+import { getPieceWorth } from "./Helpers";
 
 type PieceEntry = {
     id: string,
@@ -6,7 +7,8 @@ type PieceEntry = {
     r: number,
     s: number,
     player: PlayerColor,
-    type: PieceType
+    type: PieceType,
+    worth?: number
 }
 
 export const getInitialPieces = () => {
@@ -71,6 +73,10 @@ export const getInitialPieces = () => {
         { id: 'BQ', q: -1, r: -4, s: 5, player: 'black', type: 'queen' },
         { id: 'BK', q: 1, r: -5, s: 4, player: 'black', type: 'king' },
     ];
+
+    for (const piece of pieces) {
+        piece.worth = getPieceWorth(piece.type);
+    }
 
     return pieces;
 }

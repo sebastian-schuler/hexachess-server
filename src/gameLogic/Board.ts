@@ -1,5 +1,5 @@
 import { ChessHexagon } from "../types/SharedTypes";
-import { coordinatesToId } from "./GameHelpers";
+import { coordinatesToId } from "./Helpers";
 import { getInitialPieces } from "./InitialBoard";
 
 export const generateMap = (gridSize: number) => {
@@ -32,6 +32,7 @@ export const generateMap = (gridSize: number) => {
                 type: entry.type,
                 player: entry.player,
                 hasWalked: false,
+                worth: entry.worth!,
             };
             map.set(coordinatesToId({ q: entry.q, r: entry.r, s: entry.s }), hexa);
         }

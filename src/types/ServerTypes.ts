@@ -1,9 +1,11 @@
-import { ChessHexagon, PlayerColor, ServerToClient } from "./SharedTypes"
+import { ChessHexagon, Piece, PlayerColor, ServerToClient } from "./SharedTypes"
 
-type GameState = {
+export type GameState = {
     map: Map<string, ChessHexagon>
     currentTurn: PlayerColor
     turnCount: number
+    blackCaptures: Piece[]
+    whiteCaptures: Piece[]
 }
 
 export type Lobby = {

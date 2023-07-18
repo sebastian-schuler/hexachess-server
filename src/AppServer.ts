@@ -1,11 +1,9 @@
 import { generateMap } from "./gameLogic/Board";
-import { isKingDead, isPawnPromoted } from "./gameLogic/GameChecks";
-import { getPossibleMovements } from "./gameLogic/GameMovement/MovementHandler";
 import { Lobby, Session } from "./types/ServerTypes";
 import { GameStateUpdate, ServerToClient } from "./types/SharedTypes";
 import { getRandomId } from "./util/Helpers";
 
-const lobbies = new Map<string, Lobby>();
+export const lobbies = new Map<string, Lobby>();
 
 /*****************************************************************
  *
@@ -68,12 +66,18 @@ export const leaveLobby = (session: Session) => {
             } else {
 
                 // send update to other player
-                if (lobby.players.white) {
-                    lobby.players.white.send({ tag: "Update", update: { tag: "PlayerLeft" } });
-                } else if (lobby.players.black) {
-                    lobby.players.black?.send({ tag: "Update", update: { tag: "PlayerLeft" } });
+                const otherPlayer = lobby.players.black === null ? lobby.players.white : lobby.players.black;
+                if (!otherPlayer) return;
+
+                if (lobby.status === "game") {
+                    otherPlayer.status = "menu";
+                    otherPlayer.lobbyId = null;
+                    lobbies.delete(lobby.id);
+                } else {
+                    lobby.players.hostId = otherPlayer.id;
                 }
 
+                otherPlayer.send({ tag: "Update", update: { tag: "PlayerLeft" } });
             }
         }
     }
@@ -107,10 +111,11 @@ export const joinLobby = (session: Session, id: string) => {
     const color = lobby?.players.black === null ? "black" : "white";
 
     // Join lobby
-    if (color === "black")
+    if (color === "black") {
         lobby.players.black = session
-    else
+    } else {
         lobby.players.white = session
+    }
 
     session.status = "lobby";
     session.lobbyId = lobby.id;
@@ -119,7 +124,28 @@ export const joinLobby = (session: Session, id: string) => {
     // Send update to other player
     const otherPlayer = color === "black" ? lobby.players.white : lobby.players.black;
     otherPlayer?.send({ tag: "Update", update: { tag: "PlayerJoined" } });
-    console.log(otherPlayer);
+}
+
+export const swapPlayerColors = (session: Session) => {
+
+    // Check if session is in a lobby
+    if (!session.lobbyId) return;
+
+    const lobby = lobbies.get(session.lobbyId);
+
+    // Check if lobby exists and is in lobby state
+    if (!lobby || lobby.status === "game") return;
+
+    // Check if player is host
+    if (lobby.players.hostId !== session.id) return;
+
+    // Swap player colors
+    const temp = lobby.players.black;
+    lobby.players.black = lobby.players.white;
+    lobby.players.white = temp;
+
+    // Send update to both players
+    sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "PlayerSwapped", } });
 }
 
 /**
@@ -144,100 +170,23 @@ export const startGame = (session: Session) => {
     lobby.gameState = {
         map: generateMap(6),
         currentTurn: "white",
-        turnCount: 0
+        turnCount: 0,
+        blackCaptures: [],
+        whiteCaptures: []
     }
 
     const state: GameStateUpdate = {
         map: JSON.stringify(Array.from(lobby.gameState.map.entries())),
         currentTurn: lobby.gameState.currentTurn,
-        turnCount: lobby.gameState.turnCount
+        turnCount: lobby.gameState.turnCount,
+        blackCaptures: lobby.gameState.blackCaptures.map(piece => piece.type),
+        whiteCaptures: lobby.gameState.whiteCaptures.map(piece => piece.type),
+        scoreBlack: 0,
+        scoreWhite: 0,
     }
 
     // Send update to both players
     sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "GameStarted", state } });
-}
-
-/**
- * Moves a piece if it's the players turn
- * @param session 
- * @param idFrom 
- * @param idTo 
- * @returns 
- */
-export const movePiece = (session: Session, idFrom: string, idTo: string) => {
-
-    // Check if session is in a lobby
-    if (!session.lobbyId) return;
-
-    const lobby = lobbies.get(session.lobbyId);
-
-    // Check if lobby exists and is in game state
-    if (!lobby || lobby.status === "lobby") return;
-
-    // Check if lobby is full
-    if (!lobby.players.black || !lobby.players.white) return;
-
-    // Get player color
-    const playerColor = lobby.players.black.id === session.id ? "black" : "white";
-
-    // Check if it's the players turn
-    if (lobby.gameState?.currentTurn !== playerColor) return;
-
-    const hexFrom = lobby.gameState.map.get(idFrom);
-    const hexTo = lobby.gameState.map.get(idTo);
-
-    // Check if hexes exist
-    if (!hexFrom || !hexTo) return;
-
-    // Check if hexFrom is a piece of the player
-    if (hexFrom.piece === null || hexFrom.piece.player != playerColor) return;
-
-    // Check if hexTo is walkable
-    const possibleMoves = getPossibleMovements(hexFrom, lobby.gameState.map);
-    if (!possibleMoves.some(coord =>
-        coord.q === hexTo.coords.q &&
-        coord.r === hexTo.coords.r &&
-        coord.s === hexTo.coords.s
-    )) return;
-
-
-    if (isKingDead(hexTo)) {
-        // Check if the king is dead and end the game if so
-        const state: GameStateUpdate = {
-            map: JSON.stringify(Array.from(lobby.gameState.map.entries())),
-            currentTurn: lobby.gameState.currentTurn,
-            turnCount: lobby.gameState.turnCount
-        }
-
-        const winner = playerColor === "black" ? "black" : "white";
-
-        sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "GameEnded", state, winner } });
-    } else if (isPawnPromoted(hexFrom, hexTo)) {
-        // Check if a pawn is promoted, if so promote it
-        hexFrom.piece.type = "queen";
-    }
-
-    // Move piece
-    const pieceFrom = {
-        ...hexFrom.piece,
-    };
-    pieceFrom.hasWalked = true;
-
-    // Move piece / capture piece
-    hexTo.piece = pieceFrom;
-    hexFrom.piece = null;
-
-    // Update game state
-    lobby.gameState.currentTurn = playerColor === "black" ? "white" : "black";
-    lobby.gameState.turnCount += 0.5;
-
-    const state: GameStateUpdate = {
-        map: JSON.stringify(Array.from(lobby.gameState.map.entries())),
-        currentTurn: lobby.gameState.currentTurn,
-        turnCount: lobby.gameState.turnCount
-    }
-
-    sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "GameStateUpdate", state } });
 }
 
 /*****************************************************************
@@ -246,7 +195,7 @@ export const movePiece = (session: Session, idFrom: string, idTo: string) => {
  *
  ****************************************************************/
 
-const sendLobbyUpdate = (lobby: Lobby, m: ServerToClient) => {
+export const sendLobbyUpdate = (lobby: Lobby, m: ServerToClient) => {
     lobby.players.black?.send(m);
     lobby.players.white?.send(m);
 }

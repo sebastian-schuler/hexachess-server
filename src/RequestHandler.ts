@@ -1,4 +1,5 @@
-import { createLobby, joinLobby, leaveLobby, movePiece, startGame } from "./AppServer";
+import { createLobby, joinLobby, leaveLobby, startGame, swapPlayerColors } from "./AppServer";
+import { movePiece } from "./GameServer";
 import { Session } from "./types/ServerTypes";
 import { ClientToServer } from "./types/SharedTypes";
 
@@ -11,7 +12,6 @@ type HandleRequestProps = {
 export async function handleRequest({ req, session, setSession }: HandleRequestProps) {
 
     switch (req.tag) {
-
         case "CreateLobby":
             createLobby(session);
             break;
@@ -26,6 +26,9 @@ export async function handleRequest({ req, session, setSession }: HandleRequestP
             break;
         case "MovePiece":
             movePiece(session, req.idFrom, req.idTo);
+            break;
+        case "SwapPlayerColors":
+            swapPlayerColors(session);
             break;
     }
 }

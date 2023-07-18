@@ -2,10 +2,12 @@ import { ChessHexagon } from "../../types/SharedTypes";
 import { isValidCoordinates } from "../Helpers";
 import { isHexEmpty, isHexEnemy, moveDiagonalLeftForward, moveDiagonalRightForward, moveForward } from "./MovementFunctions";
 
-export const getPawnMovements = ({ coords, piece }: ChessHexagon, map: Map<string, ChessHexagon>) => {
+export const getPawnMovements = (hex: ChessHexagon, map: Map<string, ChessHexagon>) => {
 
-    const type = piece?.type;
-    const player = piece?.player;
+    const type = hex.piece?.type;
+    const player = hex.piece?.player;
+    const coords = hex.coords;
+    const piece = hex.piece;
 
     if (!type || !player) return [];
 
