@@ -1,5 +1,5 @@
 import { ChessHexagon, Coords, PlayerColor } from "../../types/SharedTypes";
-import { isValidCoordinates } from "../Helpers";
+import { coordinatesToId, isValidCoordinates } from "../Helpers";
 import { isHexEmpty, isHexEnemy } from "./MovementFunctions";
 
 /**
@@ -57,4 +57,56 @@ export const getMovementDirection = ({ coords, piece }: ChessHexagon, map: Map<s
     }
 
     return possibleMovements;
+}
+
+/**
+ * Checks if a pawn is en passant
+ * @param fromHex 
+ * @param map 
+ * @param turn 
+ * @returns 
+ */
+export const getPawnEnPassant = (fromHex: ChessHexagon, map: Map<string, ChessHexagon>, turn: number) => {
+
+    if (!fromHex.piece || fromHex.piece.type !== "pawn") return [];
+
+    const { q, r, s } = fromHex.coords;
+
+    const playerColor = fromHex.piece.player;
+
+    const checkHexRight = playerColor === "white" ? coordinatesToId({ q: q + 1, r: r, s: s - 1 }) : coordinatesToId({ q: q + 1, r: r - 1, s: s });
+    const checkHexLeft = playerColor === "white" ? coordinatesToId({ q: q - 1, r: r + 1, s: s }) : coordinatesToId({ q: q - 1, r: r, s: s + 1 });
+    const hexRight = map.get(checkHexRight);
+    const hexLeft = map.get(checkHexLeft);
+
+    type EnPassantCoord = {
+        moveCoords: Coords,
+        captureCoords: Coords,
+    }
+
+    const result: EnPassantCoord[] = [];
+
+    if (
+        hexRight?.piece?.type === "pawn" &&
+        hexRight.piece.player !== playerColor &&
+        hexRight.piece.pawnDoubleStepTurn === turn - 0.5
+    ) {
+        result.push({
+            moveCoords: playerColor === "white" ? { q: q + 1, r: r - 1, s: s } : { q: q + 1, r: r, s: s - 1 },
+            captureCoords: hexRight.coords,
+        });
+    }
+
+    if (
+        hexLeft?.piece?.type === "pawn" &&
+        hexLeft.piece.player !== playerColor &&
+        hexLeft.piece.pawnDoubleStepTurn === turn - 0.5
+    ) {
+        result.push({
+            moveCoords: playerColor === "white" ? { q: q - 1, r: r, s: s + 1 } : { q: q - 1, r: r + 1, s: s },
+            captureCoords: hexLeft.coords,
+        });
+    }
+
+    return result;
 }

@@ -1,4 +1,4 @@
-import { createLobby, joinLobby, leaveLobby, startGame, swapPlayerColors } from "./AppServer";
+import { createLobby, joinLobby, leaveLobby, setRandomizeColor, startGame, swapPlayerColors } from "./AppServer";
 import { movePiece } from "./GameServer";
 import { Session } from "./types/ServerTypes";
 import { ClientToServer } from "./types/SharedTypes";
@@ -29,6 +29,9 @@ export async function handleRequest({ req, session, setSession }: HandleRequestP
             break;
         case "SwapPlayerColors":
             swapPlayerColors(session);
+            break;
+        case "SetRandomizeColor":
+            setRandomizeColor(session, req.randomizeColor);
             break;
     }
 }

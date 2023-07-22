@@ -9,3 +9,15 @@ export const getRandomId = () => {
   
     return randomString.toUpperCase();
 }
+
+export const getNthLetter = (n: number): string => {
+
+  if (n < 1 || n > 26) {
+      return '';
+  }
+
+  const asciiOfA = 'A'.charCodeAt(0) - 1;
+  const nthLetter = String.fromCharCode(asciiOfA + n);
+
+  return nthLetter;
+}

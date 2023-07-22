@@ -1,9 +1,11 @@
 import { lobbies, sendLobbyUpdate } from "./AppServer";
-import { getPawnEnPassant, isKingDead, isPawnDoubleStepping, isPawnPromoted } from "./gameLogic/GameChecks";
+import { isKingDead, isPawnDoubleStepping, isPawnPromoted } from "./gameLogic/GameChecks";
 import { getPossibleMovements } from "./gameLogic/GameMovement/MovementHandler";
+import { getPawnEnPassant } from "./gameLogic/GameMovement/MovementHelpers";
 import { coordinatesToId } from "./gameLogic/Helpers";
-import { GameState, Session } from "./types/ServerTypes";
-import { GameStateUpdate, Piece } from "./types/SharedTypes";
+import { GameState, Lobby, Session } from "./types/ServerTypes";
+import { ChessHexagon, GameStateUpdate, Piece } from "./types/SharedTypes";
+import { getNthLetter } from "./util/Helpers";
 
 /**
  * Moves a piece if it's the players turn
@@ -107,7 +109,8 @@ export const movePiece = (session: Session, idFrom: string, idTo: string) => {
         }
     }
 
-    // TODO use the captured arrays to display the captures on the UI, count the points and display them
+    // Send movement message
+    sendMovementMessage(lobby, hexFrom, hexTo);
 
     // Move piece
     hexTo.piece = pieceFrom;
@@ -165,4 +168,25 @@ const getCaptureScores = (capturesBlack: Piece[], capturesWhite: Piece[]) => {
         scoreBlack: totalScoreBlack - totalScoreWhite,
         scoreWhite: totalScoreWhite - totalScoreBlack
     };
+}
+
+/**
+ * Sends a movement log message to the lobby
+ * @param lobby 
+ * @param hexFrom 
+ * @param hexTo 
+ */
+const sendMovementMessage = (lobby: Lobby, hexFrom: ChessHexagon, hexTo: ChessHexagon) => {
+
+    sendLobbyUpdate(lobby, {
+        tag: "Update", update: {
+            tag: "Message",
+            message: `${hexFrom.color} moved ${hexFrom.piece?.type}: 
+            ${getNthLetter(hexFrom.coords2D.x)}${hexFrom.coords2D.y} 
+            to 
+            ${getNthLetter(hexTo.coords2D.x)}${hexTo.coords2D.y}
+            `
+        }
+    });
+
 }

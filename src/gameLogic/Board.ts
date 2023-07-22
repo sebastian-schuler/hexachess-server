@@ -1,19 +1,22 @@
-import { ChessHexagon } from "../types/SharedTypes";
+import { ChessHexagon, Coords } from "../types/SharedTypes";
 import { coordinatesToId } from "./Helpers";
 import { getInitialPieces } from "./InitialBoard";
 
-export const generateMap = (gridSize: number) => {
+const GRID_SIZE = 6;
+
+export const generateMap = () => {
 
     const map = new Map<string, ChessHexagon>();
 
     // Generate hexagon coordinates
-    for (let q = -gridSize + 1; q < gridSize; q++) {
-        const r1 = Math.max(-gridSize + 1, -q - gridSize + 1);
-        const r2 = Math.min(gridSize - 1, -q + gridSize - 1);
+    for (let q = -GRID_SIZE + 1; q < GRID_SIZE; q++) {
+        const r1 = Math.max(-GRID_SIZE + 1, -q - GRID_SIZE + 1);
+        const r2 = Math.min(GRID_SIZE - 1, -q + GRID_SIZE - 1);
         for (let r = r1; r <= r2; r++) {
             const s = -q - r;
             map.set(coordinatesToId({ q, r, s }), {
                 coords: { q, r, s },
+                coords2D: { x: 0, y: 0 },
                 color: 'white',
                 piece: null,
                 isSelected: false,
@@ -68,9 +71,18 @@ export const generateMap = (gridSize: number) => {
         nextColor = colStartColor;
     }
 
+    // Set 2D coordinates
+    get2DCoords(map);
+
     return map;
 }
 
+/**
+ * Returns the next color in the sequence
+ * @param lastColor 
+ * @param reverse 
+ * @returns 
+ */
 const getNextColor = (lastColor: string, reverse?: boolean) => {
     if (reverse) {
         if (lastColor === 'white') return 'black';
@@ -81,4 +93,29 @@ const getNextColor = (lastColor: string, reverse?: boolean) => {
     if (lastColor === 'gray') return 'black';
     if (lastColor === 'black') return 'white';
     return 'none';
+}
+
+/**
+ * Sets the 2D coordinates of each hexagon
+ * @param map 
+ */
+const get2DCoords = (map: Map<string, ChessHexagon>) => {
+
+    let rowCounter = 0;
+    let lastCol = 0;
+
+    map.forEach((hexa) => {
+
+        if (lastCol !== hexa.coords.q) {
+            rowCounter = 0;
+            lastCol = hexa.coords.q;
+        }
+
+        rowCounter++;
+
+        hexa.coords2D = {
+            x: hexa.coords.q + GRID_SIZE,
+            y: rowCounter,
+        }
+    });
 }

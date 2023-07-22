@@ -1,6 +1,6 @@
 import { generateMap } from "./gameLogic/Board";
 import { Lobby, Session } from "./types/ServerTypes";
-import { GameStateUpdate, ServerToClient } from "./types/SharedTypes";
+import { GameStateUpdate, PlayerColor, ServerToClient } from "./types/SharedTypes";
 import { getRandomId } from "./util/Helpers";
 
 export const lobbies = new Map<string, Lobby>();
@@ -32,7 +32,8 @@ export const createLobby = (session: Session) => {
             black: session,
             white: null
         },
-        gameState: null
+        gameState: null,
+        randomizeColor: false
     }
 
     session.status = "lobby";
@@ -119,7 +120,7 @@ export const joinLobby = (session: Session, id: string) => {
 
     session.status = "lobby";
     session.lobbyId = lobby.id;
-    session.send({ tag: "Response", response: { tag: "JoinedLobby", id: lobby.id, playerColor: color } });
+    session.send({ tag: "Response", response: { tag: "JoinedLobby", id: lobby.id, playerColor: color, randomizeColor: lobby.randomizeColor } });
 
     // Send update to other player
     const otherPlayer = color === "black" ? lobby.players.white : lobby.players.black;
@@ -148,6 +149,25 @@ export const swapPlayerColors = (session: Session) => {
     sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "PlayerSwapped", } });
 }
 
+export const setRandomizeColor = (session: Session, randomizeColor: boolean) => {
+
+    // Check if session is in a lobby
+    if (!session.lobbyId) return;
+
+    const lobby = lobbies.get(session.lobbyId);
+
+    // Check if lobby exists and is in lobby state
+    if (!lobby || lobby.status === "game") return;
+
+    // Check if player is host
+    if (lobby.players.hostId !== session.id) return;
+
+    lobby.randomizeColor = randomizeColor;
+
+    // Send update to both players
+    sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "RandomizeColorsUpdated", randomizeColor: lobby.randomizeColor } });
+}
+
 /**
  * Starts the game if the lobby is full
  * @param session 
@@ -168,7 +188,7 @@ export const startGame = (session: Session) => {
 
     lobby.status = "game";
     lobby.gameState = {
-        map: generateMap(6),
+        map: generateMap(),
         currentTurn: "white",
         turnCount: 0,
         blackCaptures: [],
@@ -185,8 +205,37 @@ export const startGame = (session: Session) => {
         scoreWhite: 0,
     }
 
-    // Send update to both players
-    sendLobbyUpdate(lobby, { tag: "Update", update: { tag: "GameStarted", state } });
+    // Randomize player colors if enabled
+    const originalHostColor = lobby.players.black.id === session.id ? "black" : "white";
+    const hostColor = lobby.randomizeColor ? (Math.random() < 0.5 ? "black" : "white") : originalHostColor;
+    const opponentColor = hostColor === "black" ? "white" : "black";
+
+    let sendToBlack: PlayerColor = "black";
+    let sendToWhite: PlayerColor = "white";
+    if (originalHostColor === "black") {
+        sendToBlack = hostColor;
+        sendToWhite = opponentColor;
+    } else {
+        sendToBlack = opponentColor;
+        sendToWhite = hostColor;
+    }
+
+    lobby.players.black?.send({
+        tag: "Update",
+        update: {
+            tag: "GameStarted",
+            state,
+            playerColor: sendToBlack
+        }
+    });
+    lobby.players.white?.send({
+        tag: "Update",
+        update: {
+            tag: "GameStarted",
+            state,
+            playerColor: sendToWhite
+        }
+    });
 }
 
 /*****************************************************************

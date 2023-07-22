@@ -11,6 +11,7 @@ export type GameState = {
 export type Lobby = {
     id: string
     status: "lobby" | "game"
+    randomizeColor: boolean
     players: {
         hostId: number
         black: Session | null
